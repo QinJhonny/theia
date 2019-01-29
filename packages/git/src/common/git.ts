@@ -16,7 +16,7 @@
 
 import { ChildProcess } from 'child_process';
 import { Disposable } from '@theia/core';
-import { Repository, WorkingDirectoryStatus, Branch, GitResult, GitError, GitFileStatus, GitFileChange, CommitWithChanges, GitFileBlame } from './git-model';
+import { Repository, WorkingDirectoryStatus, Branch, GitResult, GitError, GitFileStatus, GitFileChange, CommitWithChanges, GitFileBlame, Remote, RemoteAction } from './git-model';
 
 /**
  * The WS endpoint path to the Git service.
@@ -691,11 +691,21 @@ export interface Git extends Disposable {
     show(repository: Repository, uri: string, options?: Git.Options.Show): Promise<string>;
 
     /**
-     * It resolves to an array of configured remotes for the given repository.
+     * @deprecated use `gitRemote` instead.
      *
-     * @param repository the repository to get the remotes.
+     * It resolves to an array of configured remotes names for the given repository.
+     *
+     * @param repository the repository to get the remote names.
      */
     remote(repository: Repository): Promise<string[]>;
+
+    /**
+     * It resolves to an array of configured remote objects for a given repository.
+     *
+     * @param repository the repository to get the remotes.
+     * @param action the action requested to get its corresponding remote.
+     */
+    gitRemote(repository: Repository, action: RemoteAction): Promise<Remote[]>;
 
     /**
      * Executes the Git command and resolves to the result. If an executed Git command exits with a code that is not in the `successExitCodes` or an error not in `expectedErrors`,

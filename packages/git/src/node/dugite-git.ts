@@ -39,7 +39,7 @@ import { Deferred } from '@theia/core/lib/common/promise-util';
 import * as strings from '@theia/core/lib/common/strings';
 import {
     Git, GitUtils, Repository, WorkingDirectoryStatus, GitFileChange, GitFileStatus, Branch, Commit,
-    CommitIdentity, GitResult, CommitWithChanges, GitFileBlame, CommitLine, GitError
+    CommitIdentity, GitResult, CommitWithChanges, GitFileBlame, CommitLine, GitError, Remote, RemoteAction
 } from '../common';
 import { GitRepositoryManager } from './git-repository-manager';
 import { GitLocator } from './git-locator/git-locator-protocol';
@@ -550,10 +550,19 @@ export class DugiteGit implements Git {
         return (await getTextContents(repositoryPath, commitish, path, { exec, env })).toString();
     }
 
+    /**
+     * @deprecated use `gitRemote` instead.
+     */
     async remote(repository: Repository): Promise<string[]> {
         await this.ready.promise;
         const repositoryPath = this.getFsPath(repository);
         return this.getRemotes(repositoryPath);
+    }
+
+    async gitRemote(repository: Repository, action: RemoteAction): Promise<Remote[]> {
+        await this.ready.promise;
+        const repositoryPath = this.getFsPath(repository);
+        return this.getGitRemotes(repositoryPath, action);
     }
 
     async exec(repository: Repository, args: string[], options?: Git.Options.Execution): Promise<GitResult> {
@@ -694,12 +703,34 @@ export class DugiteGit implements Git {
         return undefined;
     }
 
+    /**
+     * @deprecated use `getGitRemotes` instead.
+     */
     private async getRemotes(repositoryPath: string): Promise<string[]> {
         await this.ready.promise;
         const [exec, env] = await Promise.all([this.execProvider.exec(), this.gitEnv.promise]);
         const result = await git(['remote'], repositoryPath, 'remote', { exec, env });
         const out = result.stdout || '';
         return out.trim().match(/\S+/g) || [];
+    }
+
+    private async getGitRemotes(repositoryPath: string, action: RemoteAction): Promise<Remote[]> {
+        await this.ready.promise;
+        const [exec, env] = await Promise.all([this.execProvider.exec(), this.gitEnv.promise]);
+        const result = await git(['remote', '-v'], repositoryPath, 'remote', { exec, env });
+        const out = result.stdout || '';
+        const results = out.trim().match(/\S+/g);
+        if (results) {
+            const values: Remote[] = [];
+            for (let i = 0; i < results.length; i += 3) {
+                if (results[i + 2] === `(${action})`) {
+                    values.push({ name: results[i], url: results[i + 1] });
+                }
+            }
+            return values;
+        } else {
+            return [];
+        }
     }
 
     private async getDefaultRemote(repositoryPath: string, remote?: string): Promise<string | undefined> {

@@ -192,6 +192,27 @@ export namespace Repository {
 }
 
 /**
+ * Representation of a Git remote.
+ */
+export interface Remote {
+
+    /**
+     * The name of the remote.
+     */
+    name: string,
+
+    /**
+     * The url of the remote.
+     */
+    url: string,
+}
+
+/**
+ * Available Git remote actions.
+ */
+export type RemoteAction = 'fetch' | 'push';
+
+/**
  * The branch type. Either local or remote.
  * The order matters.
  */
