@@ -14,37 +14,37 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 import { injectable, inject } from 'inversify';
-import {FrontendApplicationContribution, StatusBar, StatusBarAlignment } from '@theia/core/lib/browser';
+import { FrontendApplicationContribution, StatusBar, StatusBarAlignment } from '@theia/core/lib/browser';
 import { ISCMService} from '../common/scm';
-import {Command} from '@theia/core';
+import { Command } from '@theia/core';
 
 @injectable()
 export class ScmContribution implements FrontendApplicationContribution {
     @inject(StatusBar) protected readonly statusBar: StatusBar;
     @inject(ISCMService) protected readonly scmService: ISCMService;
     onStart(): void {
-        this.scmService.repositories.forEach(repository => {
-            const handler = repository.provider.onDidChangeStatusBarCommands;
-            if (handler) {
-                handler(commands => this.onCommand(commands));
-            }
+        const handler1 = (commands: Command[]) => {
+            commands.forEach(command => {
+                this.statusBar.setElement(command.id, {
+                    text: command.label ? command.label : '',
+                    alignment: StatusBarAlignment.LEFT,
+                    priority: 102,
+                    command: command.id,
+                    tooltip: command.category
+                });
+            });
+        };
+        this.scmService.onDidChangeSelectedRepositories(repositories => {
+            console.log(repositories);
         });
         this.scmService.onDidAddRepository(repository => {
             const handler = repository.provider.onDidChangeStatusBarCommands;
             if (handler) {
-                handler(commands => this.onCommand(commands));
+                handler(commands => handler1(commands));
             }
         });
-    }
-    onCommand(commands: Command[]): void {
-        commands.forEach(command => {
-            this.statusBar.setElement(command.id, {
-                text: command.label ? command.label : '',
-                alignment: StatusBarAlignment.LEFT,
-                priority: 102,
-                command: command.id,
-                tooltip: command.category
-            });
+        this.scmService.onDidRemoveRepository(repository => {
+            console.log(repository);
         });
     }
 }

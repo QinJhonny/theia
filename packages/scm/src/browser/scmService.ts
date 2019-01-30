@@ -29,23 +29,33 @@ function toDisposable(fn: () => void): Disposable {
 
 @injectable()
 export class SCMService implements ISCMService {
+    // tslint:disable-next-line:no-any
+    _serviceBrand: any;
+
     private _providerIds = new Set<string>();
     private _repositories: ISCMRepository[] = [];
-    private _onDidRemoveProvider = new Emitter<ISCMRepository>();
-    get onDidRemoveRepository(): Event<ISCMRepository> { return this._onDidRemoveProvider.event; }
+    get repositories(): ISCMRepository[] { return [...this._repositories]; }
+
     private _selectedRepositories: ISCMRepository[] = [];
     get selectedRepositories(): ISCMRepository[] { return [...this._selectedRepositories]; }
+
     private _onDidChangeSelectedRepositories = new Emitter<ISCMRepository[]>();
     readonly onDidChangeSelectedRepositories: Event<ISCMRepository[]> = this._onDidChangeSelectedRepositories.event;
 
-    // tslint:disable-next-line:no-any
-    readonly _serviceBrand: any;
-    readonly onDidAddRepository: Event<ISCMRepository>;
-    get repositories(): ISCMRepository[] {
-        return this._repositories;
-    }
+    private _onDidAddProvider = new Emitter<ISCMRepository>();
+    get onDidAddRepository(): Event<ISCMRepository> { return this._onDidAddProvider.event; }
+
+    private _onDidRemoveProvider = new Emitter<ISCMRepository>();
+    get onDidRemoveRepository(): Event<ISCMRepository> { return this._onDidRemoveProvider.event; }
 
     registerSCMProvider(provider: ISCMProvider): ISCMRepository {
+
+        if (this._providerIds.has(provider.id)) {
+            throw new Error(`SCM Provider ${provider.id} already exists.`);
+        }
+
+        this._providerIds.add(provider.id);
+
         const disposable = toDisposable(() => {
             const index = this._repositories.indexOf(repository);
 
@@ -59,18 +69,21 @@ export class SCMService implements ISCMService {
             this._onDidRemoveProvider.fire(repository);
             this.onDidChangeSelection();
         });
+
         const repository = new SCMRepository(provider, disposable);
         const selectedDisposable = repository.onDidChangeSelection(this.onDidChangeSelection, this);
 
         this._repositories.push(repository);
-        // this._onDidAddProvider.fire(repository);
+        this._onDidAddProvider.fire(repository);
 
         // automatically select the first repository
         if (this._repositories.length === 1) {
             repository.setSelected(true);
         }
+
         return repository;
     }
+
     private onDidChangeSelection(): void {
         const selectedRepositories = this._repositories.filter(r => r.selected);
 
