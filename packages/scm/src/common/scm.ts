@@ -14,7 +14,8 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 import URI from 'vscode-uri';
-import {Command, Disposable, Event} from '@theia/core/lib/common';
+import { Disposable, Event} from '@theia/core/lib/common';
+import { StatusBarEntry } from '@theia/core/lib/browser';
 
 export interface IBaselineResourceProvider {
     getBaselineResource(resource: URI): Promise<URI>;
@@ -64,12 +65,16 @@ export interface ISCMProvider extends Disposable {
     readonly count?: number;
     readonly commitTemplate?: string;
     readonly onDidChangeCommitTemplate?: Event<string>;
-    readonly onDidChangeStatusBarCommands?: Event<Command[]>;
-    readonly acceptInputCommand?: Command;
-    readonly statusBarCommands?: Command[];
+    readonly onDidChangeStatusBarCommands?: Event<StatusBarCommand[]>;
+    readonly acceptInputCommand?: StatusBarCommand;
+    readonly statusBarCommands?: StatusBarCommand[];
     readonly onDidChange: Event<void>;
 
     // getOriginalResource(uri: URI): Promise<URI>;
+}
+
+export interface StatusBarCommand extends StatusBarEntry {
+    id: string
 }
 
 export const enum InputValidationType {
